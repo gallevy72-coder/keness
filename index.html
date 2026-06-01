@@ -17,7 +17,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
     import {
       getFirestore, collection, doc, getDocs, setDoc, deleteDoc,
-      onSnapshot, writeBatch
+      onSnapshot, writeBatch, runTransaction
     } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -33,7 +33,7 @@
     const db = getFirestore(app);
 
     window.FB = {
-      db, collection, doc, getDocs, setDoc, deleteDoc, onSnapshot, writeBatch,
+      db, collection, doc, getDocs, setDoc, deleteDoc, onSnapshot, writeBatch, runTransaction,
       ready: true
     };
     window.dispatchEvent(new CustomEvent("firebase-ready"));
@@ -71,20 +71,20 @@
     const ADMIN_PASSWORD = "2026";
 
     const INITIAL_WORKSHOPS = [
-      { id:"w1",  name:"נוירופדגוגיה",  facilitator:"קפטן זלצברג",                  round:1, capacity:8, location:"יתעדכן", description:"", isLong:false },
-      { id:"w2",  name:"גיימינג",        facilitator:"מיינקראפט בכיתה (בערבית)",     round:1, capacity:8, location:"יתעדכן", description:"", isLong:false },
-      { id:"w3",  name:"מחנה משותף",     facilitator:"מדברים חופשי",                 round:1, capacity:8, location:"יתעדכן", description:"", isLong:false },
-      { id:"w4",  name:"שלומות המורים",  facilitator:"משוב מקדם",                    round:1, capacity:8, location:"יתעדכן", description:"", isLong:false },
-      { id:"w5",  name:"פסיכופדגוגיה",   facilitator:"הקוביה",                       round:1, capacity:8, location:"יתעדכן", description:"", isLong:false },
-      { id:"w6",  name:"מדרש עברי",      facilitator:"מדרש עברי – שחר",              round:1, capacity:8, location:"יתעדכן", description:"סדנא ארוכה המכסה שני סבבים", isLong:true },
-      { id:"w7",  name:"בינה מלאכותית", facilitator:"חבר לכתיבה",                   round:1, capacity:8, location:"יתעדכן", description:"", isLong:false },
-      { id:"w8",  name:"נוירופדגוגיה",  facilitator:"CHECKIN365",                    round:2, capacity:8, location:"יתעדכן", description:"", isLong:false },
-      { id:"w9",  name:"גיימינג",        facilitator:"מיינקראפט בכיתה",              round:2, capacity:8, location:"יתעדכן", description:"", isLong:false },
-      { id:"w10", name:"מחנה משותף",     facilitator:"מדברים חופשי",                 round:2, capacity:8, location:"יתעדכן", description:"", isLong:false },
-      { id:"w11", name:"שלומות המורים",  facilitator:"משוב מקדם",                    round:2, capacity:8, location:"יתעדכן", description:"", isLong:false },
-      { id:"w12", name:"פסיכופדגוגיה",   facilitator:"ADHD",                         round:2, capacity:8, location:"יתעדכן", description:"", isLong:false },
-      { id:"w13", name:"נתיב חדש",       facilitator:"נתיב חדש (בערבית)",            round:2, capacity:8, location:"יתעדכן", description:"", isLong:false },
-      { id:"w14", name:"בינה מלאכותית", facilitator:"אופק השותף למציאת חוזקות",      round:2, capacity:8, location:"יתעדכן", description:"", isLong:false },
+      { id:"w1",  name:"נוירופדגוגיה",  facilitator:"קפטן זלצברג",                  round:1, capacity:8, location:"יתעדכן", description:"", isLong:false, registeredCount:0 },
+      { id:"w2",  name:"גיימינג",        facilitator:"מיינקראפט בכיתה (בערבית)",     round:1, capacity:8, location:"יתעדכן", description:"", isLong:false, registeredCount:0 },
+      { id:"w3",  name:"מחנה משותף",     facilitator:"מדברים חופשי",                 round:1, capacity:8, location:"יתעדכן", description:"", isLong:false, registeredCount:0 },
+      { id:"w4",  name:"שלומות המורים",  facilitator:"משוב מקדם",                    round:1, capacity:8, location:"יתעדכן", description:"", isLong:false, registeredCount:0 },
+      { id:"w5",  name:"פסיכופדגוגיה",   facilitator:"הקוביה",                       round:1, capacity:8, location:"יתעדכן", description:"", isLong:false, registeredCount:0 },
+      { id:"w6",  name:"מדרש עברי",      facilitator:"מדרש עברי – שחר",              round:1, capacity:8, location:"יתעדכן", description:"סדנא ארוכה המכסה שני סבבים", isLong:true,  registeredCount:0 },
+      { id:"w7",  name:"בינה מלאכותית", facilitator:"חבר לכתיבה",                   round:1, capacity:8, location:"יתעדכן", description:"", isLong:false, registeredCount:0 },
+      { id:"w8",  name:"נוירופדגוגיה",  facilitator:"CHECKIN365",                    round:2, capacity:8, location:"יתעדכן", description:"", isLong:false, registeredCount:0 },
+      { id:"w9",  name:"גיימינג",        facilitator:"מיינקראפט בכיתה",              round:2, capacity:8, location:"יתעדכן", description:"", isLong:false, registeredCount:0 },
+      { id:"w10", name:"מחנה משותף",     facilitator:"מדברים חופשי",                 round:2, capacity:8, location:"יתעדכן", description:"", isLong:false, registeredCount:0 },
+      { id:"w11", name:"שלומות המורים",  facilitator:"משוב מקדם",                    round:2, capacity:8, location:"יתעדכן", description:"", isLong:false, registeredCount:0 },
+      { id:"w12", name:"פסיכופדגוגיה",   facilitator:"ADHD",                         round:2, capacity:8, location:"יתעדכן", description:"", isLong:false, registeredCount:0 },
+      { id:"w13", name:"נתיב חדש",       facilitator:"נתיב חדש (בערבית)",            round:2, capacity:8, location:"יתעדכן", description:"", isLong:false, registeredCount:0 },
+      { id:"w14", name:"בינה מלאכותית", facilitator:"אופק השותף למציאת חוזקות",      round:2, capacity:8, location:"יתעדכן", description:"", isLong:false, registeredCount:0 },
     ];
 
     const CAT_COLORS = {
@@ -132,13 +132,32 @@
         if (!fbReady) return;
         const { db, collection, onSnapshot, doc, setDoc, writeBatch, getDocs } = window.FB;
 
-        // Seed if empty
+        // Seed if empty, then migrate counters if missing
         (async () => {
           const snap = await getDocs(collection(db, "workshops"));
           if (snap.empty) {
             const batch = writeBatch(db);
             INITIAL_WORKSHOPS.forEach(w => batch.set(doc(db, "workshops", w.id), w));
             await batch.commit();
+          } else {
+            // Migration: backfill registeredCount field if missing on any workshop
+            let needsMigration = false;
+            snap.forEach(d => { if (d.data().registeredCount === undefined) needsMigration = true; });
+            if (needsMigration) {
+              const regSnap = await getDocs(collection(db, "registrations"));
+              const counts = {};
+              regSnap.forEach(d => {
+                const r = d.data();
+                if (!counts[r.workshopId]) counts[r.workshopId] = new Set();
+                counts[r.workshopId].add(r.participantName);
+              });
+              const batch = writeBatch(db);
+              snap.forEach(d => {
+                const cnt = counts[d.id] ? counts[d.id].size : 0;
+                batch.update(doc(db, "workshops", d.id), { registeredCount: cnt });
+              });
+              await batch.commit();
+            }
           }
         })();
 
@@ -162,7 +181,11 @@
         setTimeout(() => setToast(null), 3200);
       };
 
-      const getCount = useCallback((wid) => registrations.filter(r => r.workshopId === wid).length, [registrations]);
+      // Use the atomic counter on the workshop doc (the source of truth for capacity)
+      const getCount = useCallback((wid) => {
+        const ws = workshops.find(w => w.id === wid);
+        return ws ? (ws.registeredCount || 0) : 0;
+      }, [workshops]);
       const getReg = useCallback((name, round) => registrations.find(r => r.participantName === name && r.round === round), [registrations]);
 
       /* ── ACTIONS ── */
@@ -175,38 +198,93 @@
       };
 
       const handleSelect = async (wid) => {
-        const ws = workshops.find(w => w.id === wid);
-        if (!ws) return;
-        if (getCount(wid) >= ws.capacity) { showToast("הסדנא מלאה!", "err"); return; }
         setSaving(true);
         try {
-          const { db, doc, setDoc, writeBatch } = window.FB;
+          const { db, doc, runTransaction } = window.FB;
           const name = participant.name;
-          const batch = writeBatch(db);
-          const id1 = safeId(name) + "_r" + ws.round;
-          batch.set(doc(db, "registrations", id1), {
-            participantName: name, workshopId: wid, round: ws.round, timestamp: Date.now()
-          });
-          if (ws.isLong) {
-            const id2 = safeId(name) + "_r2";
-            batch.set(doc(db, "registrations", id2), {
-              participantName: name, workshopId: wid, round: 2, timestamp: Date.now()
+
+          await runTransaction(db, async (txn) => {
+            /* ─── READ PHASE ─── all reads must precede any writes ─── */
+            const targetRef = doc(db, "workshops", wid);
+            const targetSnap = await txn.get(targetRef);
+            if (!targetSnap.exists()) throw new Error("NO_WS");
+            const target = targetSnap.data();
+
+            // Read existing registration for the round we're modifying
+            const newRegRef = doc(db, "registrations", safeId(name) + "_r" + target.round);
+            const existSnap = await txn.get(newRegRef);
+            const exist = existSnap.exists() ? existSnap.data() : null;
+
+            // Idempotent re-click on the same workshop
+            if (exist && exist.workshopId === wid) return;
+
+            // When acting on round 1 (whether the target is long or not), we also
+            // need to know the user's round-2 registration to maintain consistency
+            let r2RegRef = null, r2Reg = null;
+            if (target.round === 1) {
+              r2RegRef = doc(db, "registrations", safeId(name) + "_r2");
+              const r2Snap = await txn.get(r2RegRef);
+              r2Reg = r2Snap.exists() ? r2Snap.data() : null;
+            }
+
+            // Collect ids of workshops whose count must be decremented
+            const oldWsIds = new Set();
+            if (exist && exist.workshopId !== wid) oldWsIds.add(exist.workshopId);
+            // If switching to a non-long r1 workshop and the user previously held a
+            // long-workshop r2 registration, that long workshop also loses a slot.
+            if (target.round === 1 && !target.isLong && r2Reg) {
+              oldWsIds.add(r2Reg.workshopId);
+            }
+
+            // Read every old workshop's current state (Set guarantees no duplicates)
+            const oldWs = {};
+            for (const oldId of oldWsIds) {
+              if (oldId === wid) continue;
+              const oldRef = doc(db, "workshops", oldId);
+              const oldSnap = await txn.get(oldRef);
+              if (oldSnap.exists()) oldWs[oldId] = { ref: oldRef, data: oldSnap.data() };
+            }
+
+            /* ─── CAPACITY CHECK (atomic) ─── */
+            const newCount = (target.registeredCount || 0) + 1;
+            if (newCount > target.capacity) throw new Error("FULL");
+
+            /* ─── WRITE PHASE ─── */
+            // Bump the target workshop's count
+            txn.update(targetRef, { registeredCount: newCount });
+
+            // Decrement old workshops' counts
+            for (const oldId in oldWs) {
+              const { ref, data } = oldWs[oldId];
+              txn.update(ref, { registeredCount: Math.max(0, (data.registeredCount || 0) - 1) });
+            }
+
+            // Write the registration for the current round
+            txn.set(newRegRef, {
+              participantName: name, workshopId: wid, round: target.round, timestamp: Date.now()
             });
-          } else if (ws.round === 1) {
-            // Switching to a non-long r1 workshop: clear stale r2 from long workshop
-            const r2Reg = registrations.find(r => r.participantName === name && r.round === 2);
-            if (r2Reg) {
-              const r2Ws = workshops.find(w => w.id === r2Reg.workshopId);
-              if (r2Ws && r2Ws.isLong) {
-                batch.delete(doc(db, "registrations", safeId(name) + "_r2"));
+
+            // Long workshop: also write a round-2 registration pointing to the same workshop
+            if (target.isLong) {
+              txn.set(r2RegRef, {
+                participantName: name, workshopId: wid, round: 2, timestamp: Date.now()
+              });
+            } else if (target.round === 1 && r2Reg) {
+              // Switching to non-long r1: if the previous r2 reg was from a long
+              // workshop, it's now stale and must be deleted.
+              const oldR2 = oldWs[r2Reg.workshopId];
+              if (oldR2 && oldR2.data.isLong) {
+                txn.delete(r2RegRef);
               }
             }
-          }
-          await batch.commit();
-          // No auto-navigate — user clicks "המשך" / "סיימתי" explicitly
+          });
         } catch (e) {
-          console.error(e);
-          showToast("שגיאה בהרשמה. נסה שוב.", "err");
+          if (e.message === "FULL") {
+            showToast("הסדנא התמלאה זה עתה — בחרו אחרת", "err");
+          } else if (e.message !== "NO_WS") {
+            console.error(e);
+            showToast("שגיאה בהרשמה. נסה שוב.", "err");
+          }
         }
         setSaving(false);
       };
@@ -219,7 +297,10 @@
       const saveWorkshop = async (u) => {
         try {
           const { db, doc, setDoc } = window.FB;
-          await setDoc(doc(db, "workshops", u.id), u);
+          // Preserve the live registeredCount — the admin form does not touch it
+          const existing = workshops.find(w => w.id === u.id);
+          const safeUpdate = { ...u, registeredCount: existing ? (existing.registeredCount || 0) : 0 };
+          await setDoc(doc(db, "workshops", u.id), safeUpdate);
           setEditing(null);
           showToast("הסדנא עודכנה ✓");
         } catch (e) {
@@ -245,12 +326,15 @@
       const resetAll = async () => {
         if (!confirm("למחוק את כל ההרשמות? פעולה זו אינה הפיכה.")) return;
         try {
-          const { db, collection, getDocs, deleteDoc, doc } = window.FB;
-          const snap = await getDocs(collection(db, "registrations"));
-          const dels = [];
-          snap.forEach(d => dels.push(deleteDoc(doc(db, "registrations", d.id))));
-          await Promise.all(dels);
-          showToast("כל ההרשמות נמחקו");
+          const { db, collection, getDocs, doc, writeBatch } = window.FB;
+          const regSnap = await getDocs(collection(db, "registrations"));
+          const wsSnap = await getDocs(collection(db, "workshops"));
+          // One batch — atomic across regs + workshop counters
+          const batch = writeBatch(db);
+          regSnap.forEach(d => batch.delete(doc(db, "registrations", d.id)));
+          wsSnap.forEach(d => batch.update(doc(db, "workshops", d.id), { registeredCount: 0 }));
+          await batch.commit();
+          showToast("כל ההרשמות נמחקו והקאונטרים אופסו");
         } catch (e) { console.error(e); showToast("שגיאה במחיקה", "err"); }
       };
 
@@ -642,6 +726,22 @@
 
                           {isEdit && (
                             <div style={{ marginTop: 16, paddingTop: 14, borderTop: "2px solid #f3f4f6" }}>
+                              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+                                <div>
+                                  <label style={S.label}>שם הקהילה</label>
+                                  <input value={editing.name}
+                                    onChange={e => setEditing({ ...editing, name: e.target.value })}
+                                    style={{ ...S.input, padding: "10px 14px", fontSize: 14 }}
+                                    placeholder="שם הקהילה" />
+                                </div>
+                                <div>
+                                  <label style={S.label}>מנחה / תוצר</label>
+                                  <input value={editing.facilitator}
+                                    onChange={e => setEditing({ ...editing, facilitator: e.target.value })}
+                                    style={{ ...S.input, padding: "10px 14px", fontSize: 14 }}
+                                    placeholder="שם המנחה" />
+                                </div>
+                              </div>
                               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
                                 <div>
                                   <label style={S.label}>מכסה</label>
