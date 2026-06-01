@@ -192,9 +192,18 @@
             batch.set(doc(db, "registrations", id2), {
               participantName: name, workshopId: wid, round: 2, timestamp: Date.now()
             });
+          } else if (ws.round === 1) {
+            // Switching to a non-long r1 workshop: clear stale r2 from long workshop
+            const r2Reg = registrations.find(r => r.participantName === name && r.round === 2);
+            if (r2Reg) {
+              const r2Ws = workshops.find(w => w.id === r2Reg.workshopId);
+              if (r2Ws && r2Ws.isLong) {
+                batch.delete(doc(db, "registrations", safeId(name) + "_r2"));
+              }
+            }
           }
           await batch.commit();
-          setView(ws.isLong || ws.round === 2 ? "summary" : "round2");
+          // No auto-navigate — user clicks "המשך" / "סיימתי" explicitly
         } catch (e) {
           console.error(e);
           showToast("שגיאה בהרשמה. נסה שוב.", "err");
@@ -354,6 +363,8 @@
         const round = view === "round1" ? 1 : 2;
         const roundWs = workshops.filter(w => w.round === round);
         const currentReg = participant ? getReg(participant.name, round) : null;
+        const currentRegWs = currentReg ? workshops.find(w => w.id === currentReg.workshopId) : null;
+        const isLongSelected = currentRegWs && currentRegWs.isLong;
 
         return (
           <div style={S.root}>
@@ -417,7 +428,50 @@
                 })}
               </div>
 
-              <div style={{ textAlign: "center", marginTop: 24 }}>
+              {/* Selection summary + Continue/Done button */}
+              {currentReg && currentRegWs ? (
+                <div style={{
+                  marginTop: 26,
+                  padding: 18,
+                  background: "#fff",
+                  borderRadius: 14,
+                  border: "2px solid #10b981",
+                  boxShadow: "0 4px 20px rgba(16,185,129,.15)",
+                }}>
+                  <div style={{ marginBottom: 14, textAlign: "center" }}>
+                    <div style={{ fontSize: 12, color: "#10b981", fontWeight: 700, marginBottom: 4 }}>
+                      ✓ בחרת
+                    </div>
+                    <div style={{ fontSize: 15, color: "#1f2937", fontWeight: 700 }}>
+                      {currentRegWs.name} — {currentRegWs.facilitator}
+                    </div>
+                    {isLongSelected && (
+                      <div style={{ fontSize: 12, color: "#b45309", marginTop: 6 }}>
+                        ⏱ סדנא ארוכה — מכסה את שני הסבבים
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setView(round === 2 || isLongSelected ? "summary" : "round2")}
+                    style={S.btn(round === 2 || isLongSelected
+                      ? "linear-gradient(135deg,#10b981,#059669)"
+                      : "linear-gradient(135deg,#c026d3,#7c3aed)")}>
+                    {round === 2 || isLongSelected ? "סיימתי — הצג סיכום ←" : "המשך לסבב ב׳ ←"}
+                  </button>
+                </div>
+              ) : (
+                <div style={{
+                  marginTop: 26, padding: 14,
+                  background: "#fffbeb",
+                  border: "2px dashed #fbbf24",
+                  borderRadius: 12, textAlign: "center",
+                  color: "#92400e", fontSize: 14, fontWeight: 500,
+                }}>
+                  בחרו סדנא להמשך
+                </div>
+              )}
+
+              <div style={{ textAlign: "center", marginTop: 20 }}>
                 <button onClick={() => setView(round === 1 ? "entry" : "round1")}
                   style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 13 }}>← חזרה</button>
               </div>
