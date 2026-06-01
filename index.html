@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>כנס הקהילות</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+    import {
+      getFirestore, collection, doc, getDocs, setDoc, deleteDoc,
+      onSnapshot, writeBatch
+    } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAVVMB9oMkG5Uj964buMME6bRycvDr9Njc",
+      authDomain: "keness-9ee96.firebaseapp.com",
+      projectId: "keness-9ee96",
+      storageBucket: "keness-9ee96.firebasestorage.app",
+      messagingSenderId: "471583803964",
+      appId: "1:471583803964:web:25231a0efbcf1fc86cd139"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.FB = {
+      db, collection, doc, getDocs, setDoc, deleteDoc, onSnapshot, writeBatch,
+      ready: true
+    };
+    window.dispatchEvent(new CustomEvent("firebase-ready"));
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: 'Rubik', sans-serif;
+      background: linear-gradient(160deg, #f5f0ff 0%, #fdf4ff 50%, #fff7f0 100%);
+      min-height: 100vh;
+      color: #1f2937;
+    }
+    input, button, textarea, select { font-family: 'Rubik', sans-serif; }
+    input:focus, textarea:focus { border-color: #a855f7 !important; outline: none; }
+    button:active { transform: scale(0.98); }
+    .ws-card:hover:not(.ws-full) { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(124,58,237,.15) !important; }
+    .ws-card { transition: transform .2s, box-shadow .2s, border-color .2s; }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#7c3aed;font-family:'Rubik',sans-serif;">
+      <div style="text-align:center;">
+        <div style="font-size:52px;">✦</div>
+        <p style="font-weight:600;">טוען…</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="text/babel" data-presets="env,react">
+    const { useState, useEffect, useCallback } = React;
+
+    const ADMIN_PASSWORD = "2026";
+
+    const INITIAL_WORKSHOPS = [
+      { id:"w1",  name:"נוירופדגוגיה",  facilitator:"קפטן זלצברג",                  round:1, capacity:8, location:"יתעדכן", description:"", isLong:false },
+      { id:"w2",  name:"גיימינג",        facilitator:"מיינקראפט בכיתה (בערבית)",     round:1, capacity:8, location:"יתעדכן", description:"", isLong:false },
+      { id:"w3",  name:"מחנה משותף",     facilitator:"מדברים חופשי",                 round:1, capacity:8, location:"יתעדכן", description:"", isLong:false },
+      { id:"w4",  name:"שלומות המורים",  facilitator:"משוב מקדם",                    round:1, capacity:8, location:"יתעדכן", description:"", isLong:false },
+      { id:"w5",  name:"פסיכופדגוגיה",   facilitator:"הקוביה",                       round:1, capacity:8, location:"יתעדכן", description:"", isLong:false },
+      { id:"w6",  name:"מדרש עברי",      facilitator:"מדרש עברי – שחר",              round:1, capacity:8, location:"יתעדכן", description:"סדנא ארוכה המכסה שני סבבים", isLong:true },
+      { id:"w7",  name:"בינה מלאכותית", facilitator:"חבר לכתיבה",                   round:1, capacity:8, location:"יתעדכן", description:"", isLong:false },
+      { id:"w8",  name:"נוירופדגוגיה",  facilitator:"CHECKIN365",                    round:2, capacity:8, location:"יתעדכן", description:"", isLong:false },
+      { id:"w9",  name:"גיימינג",        facilitator:"מיינקראפט בכיתה",              round:2, capacity:8, location:"יתעדכן", description:"", isLong:false },
+      { id:"w10", name:"מחנה משותף",     facilitator:"מדברים חופשי",                 round:2, capacity:8, location:"יתעדכן", description:"", isLong:false },
+      { id:"w11", name:"שלומות המורים",  facilitator:"משוב מקדם",                    round:2, capacity:8, location:"יתעדכן", description:"", isLong:false },
+      { id:"w12", name:"פסיכופדגוגיה",   facilitator:"ADHD",                         round:2, capacity:8, location:"יתעדכן", description:"", isLong:false },
+      { id:"w13", name:"נתיב חדש",       facilitator:"נתיב חדש (בערבית)",            round:2, capacity:8, location:"יתעדכן", description:"", isLong:false },
+      { id:"w14", name:"בינה מלאכותית", facilitator:"אופק השותף למציאת חוזקות",      round:2, capacity:8, location:"יתעדכן", description:"", isLong:false },
+    ];
+
+    const CAT_COLORS = {
+      "נוירופדגוגיה":  "#8b5cf6",
+      "גיימינג":        "#10b981",
+      "מחנה משותף":    "#f59e0b",
+      "שלומות המורים": "#ef4444",
+      "פסיכופדגוגיה":  "#3b82f6",
+      "מדרש עברי":      "#d97706",
+      "בינה מלאכותית": "#ec4899",
+      "נתיב חדש":       "#6366f1",
+    };
+    const getColor = (n) => CAT_COLORS[n] || "#a855f7";
+
+    /* Sanitize name → safe firestore doc id */
+    const safeId = (s) => s.replace(/[\s\/\\.#$\[\]]/g, "_");
+
+    function App() {
+      const [fbReady, setFbReady] = useState(!!(window.FB && window.FB.ready));
+      const [view, setView] = useState("entry");
+      const [firstName, setFirstName] = useState("");
+      const [lastName, setLastName] = useState("");
+      const [participant, setParticipant] = useState(null);
+      const [workshops, setWorkshops] = useState([]);
+      const [registrations, setRegistrations] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [adminPass, setAdminPass] = useState("");
+      const [adminPassErr, setAdminPassErr] = useState(false);
+      const [adminTab, setAdminTab] = useState("report");
+      const [editing, setEditing] = useState(null);
+      const [expanded, setExpanded] = useState(null);
+      const [toast, setToast] = useState(null);
+      const [saving, setSaving] = useState(false);
+
+      /* Wait for Firebase */
+      useEffect(() => {
+        if (fbReady) return;
+        const h = () => setFbReady(true);
+        window.addEventListener("firebase-ready", h);
+        return () => window.removeEventListener("firebase-ready", h);
+      }, [fbReady]);
+
+      /* Subscribe to workshops + registrations */
+      useEffect(() => {
+        if (!fbReady) return;
+        const { db, collection, onSnapshot, doc, setDoc, writeBatch, getDocs } = window.FB;
+
+        // Seed if empty
+        (async () => {
+          const snap = await getDocs(collection(db, "workshops"));
+          if (snap.empty) {
+            const batch = writeBatch(db);
+            INITIAL_WORKSHOPS.forEach(w => batch.set(doc(db, "workshops", w.id), w));
+            await batch.commit();
+          }
+        })();
+
+        const unsubW = onSnapshot(collection(db, "workshops"), (snap) => {
+          const ws = [];
+          snap.forEach(d => ws.push({ ...d.data(), id: d.id }));
+          ws.sort((a, b) => parseInt(a.id.replace("w","")) - parseInt(b.id.replace("w","")));
+          setWorkshops(ws);
+          setLoading(false);
+        });
+        const unsubR = onSnapshot(collection(db, "registrations"), (snap) => {
+          const rs = [];
+          snap.forEach(d => rs.push({ ...d.data(), id: d.id }));
+          setRegistrations(rs);
+        });
+        return () => { unsubW(); unsubR(); };
+      }, [fbReady]);
+
+      const showToast = (msg, type = "ok") => {
+        setToast({ msg, type });
+        setTimeout(() => setToast(null), 3200);
+      };
+
+      const getCount = useCallback((wid) => registrations.filter(r => r.workshopId === wid).length, [registrations]);
+      const getReg = useCallback((name, round) => registrations.find(r => r.participantName === name && r.round === round), [registrations]);
+
+      /* ── ACTIONS ── */
+      const handleEntry = () => {
+        if (!firstName.trim() || !lastName.trim()) { showToast("נא להזין שם ושם משפחה", "err"); return; }
+        const name = (firstName.trim() + " " + lastName.trim());
+        setParticipant({ name });
+        const r1 = registrations.find(r => r.participantName === name && r.round === 1);
+        setView(r1 ? "summary" : "round1");
+      };
+
+      const handleSelect = async (wid) => {
+        const ws = workshops.find(w => w.id === wid);
+        if (!ws) return;
+        if (getCount(wid) >= ws.capacity) { showToast("הסדנא מלאה!", "err"); return; }
+        setSaving(true);
+        try {
+          const { db, doc, setDoc, writeBatch } = window.FB;
+          const name = participant.name;
+          const batch = writeBatch(db);
+          const id1 = safeId(name) + "_r" + ws.round;
+          batch.set(doc(db, "registrations", id1), {
+            participantName: name, workshopId: wid, round: ws.round, timestamp: Date.now()
+          });
+          if (ws.isLong) {
+            const id2 = safeId(name) + "_r2";
+            batch.set(doc(db, "registrations", id2), {
+              participantName: name, workshopId: wid, round: 2, timestamp: Date.now()
+            });
+          }
+          await batch.commit();
+          setView(ws.isLong || ws.round === 2 ? "summary" : "round2");
+        } catch (e) {
+          console.error(e);
+          showToast("שגיאה בהרשמה. נסה שוב.", "err");
+        }
+        setSaving(false);
+      };
+
+      const handleAdminLogin = () => {
+        if (adminPass === ADMIN_PASSWORD) { setView("admin"); setAdminPassErr(false); }
+        else setAdminPassErr(true);
+      };
+
+      const saveWorkshop = async (u) => {
+        try {
+          const { db, doc, setDoc } = window.FB;
+          await setDoc(doc(db, "workshops", u.id), u);
+          setEditing(null);
+          showToast("הסדנא עודכנה ✓");
+        } catch (e) {
+          console.error(e);
+          showToast("שגיאה בשמירה", "err");
+        }
+      };
+
+      const exportCSV = () => {
+        let csv = "\uFEFF" + "סדנא,מנחה,סבב,שם משתתף\n";
+        workshops.forEach(w => {
+          const ppl = registrations.filter(r => r.workshopId === w.id).map(r => r.participantName);
+          if (!ppl.length) csv += '"' + w.name + '","' + w.facilitator + '","' + (w.round===1?"סבב א":"סבב ב") + '","—"\n';
+          else ppl.forEach(p => { csv += '"' + w.name + '","' + w.facilitator + '","' + (w.round===1?"סבב א":"סבב ב") + '","' + p + '"\n'; });
+        });
+        const a = Object.assign(document.createElement("a"), {
+          href: URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" })),
+          download: "conference_report.csv"
+        });
+        a.click();
+      };
+
+      const resetAll = async () => {
+        if (!confirm("למחוק את כל ההרשמות? פעולה זו אינה הפיכה.")) return;
+        try {
+          const { db, collection, getDocs, deleteDoc, doc } = window.FB;
+          const snap = await getDocs(collection(db, "registrations"));
+          const dels = [];
+          snap.forEach(d => dels.push(deleteDoc(doc(db, "registrations", d.id))));
+          await Promise.all(dels);
+          showToast("כל ההרשמות נמחקו");
+        } catch (e) { console.error(e); showToast("שגיאה במחיקה", "err"); }
+      };
+
+      /* ── STYLES ── */
+      const S = {
+        root: { direction: "rtl", paddingBottom: 60 },
+        header: (grad) => ({
+          background: grad || "linear-gradient(135deg, #c026d3 0%, #7c3aed 100%)",
+          color: "#fff", padding: "28px 24px 22px", textAlign: "center",
+          borderRadius: "0 0 28px 28px", boxShadow: "0 8px 30px rgba(124,58,237,.25)", marginBottom: 28,
+        }),
+        card: { background: "#fff", borderRadius: 18, boxShadow: "0 4px 24px rgba(124,58,237,.08)", overflow: "hidden" },
+        input: { width: "100%", padding: "13px 16px", border: "2px solid #e5e7eb", borderRadius: 12, fontSize: 15, direction: "rtl" },
+        btn: (bg, fg = "#fff") => ({
+          background: bg, color: fg, border: "none", borderRadius: 12,
+          padding: "14px 28px", fontWeight: 700, fontSize: 15, cursor: "pointer", width: "100%",
+        }),
+        label: { display: "block", fontWeight: 600, fontSize: 13, color: "#374151", marginBottom: 6 },
+        pill: (bg, fg) => ({ background: bg, color: fg, borderRadius: 20, padding: "3px 11px", fontSize: 12, fontWeight: 700 }),
+        wrap: { maxWidth: 680, margin: "0 auto", padding: "0 16px" },
+      };
+
+      const Toast = () => toast ? (
+        <div style={{
+          position: "fixed", top: 18, left: "50%", transform: "translateX(-50%)",
+          background: toast.type === "err" ? "#ef4444" : "#10b981",
+          color: "#fff", padding: "12px 26px", borderRadius: 12, fontWeight: 700,
+          zIndex: 9999, boxShadow: "0 6px 20px rgba(0,0,0,.18)", fontSize: 14, whiteSpace: "nowrap",
+        }}>{toast.msg}</div>
+      ) : null;
+
+      if (!fbReady || loading) return (
+        <div style={{ ...S.root, display: "flex", alignItems: "center", justifyContent: "center", height: "100vh" }}>
+          <div style={{ textAlign: "center", color: "#7c3aed" }}>
+            <div style={{ fontSize: 52 }}>✦</div>
+            <p style={{ fontWeight: 600 }}>מתחבר לשרת…</p>
+          </div>
+        </div>
+      );
+
+      /* ═══ ENTRY ═══ */
+      if (view === "entry") return (
+        <div style={S.root}>
+          <Toast />
+          <div style={S.header()}>
+            <div style={{ fontSize: 44, marginBottom: 6 }}>🎓</div>
+            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: -.5 }}>כנס הקהילות</h1>
+            <p style={{ margin: "6px 0 0", opacity: .85, fontSize: 15 }}>הרשמה לסדנאות</p>
+          </div>
+          <div style={S.wrap}>
+            <div style={S.card}>
+              <div style={{ padding: "32px 28px" }}>
+                <div style={{ marginBottom: 18 }}>
+                  <label style={S.label}>שם פרטי</label>
+                  <input style={S.input} placeholder="הזן שם פרטי" value={firstName}
+                    onChange={e => setFirstName(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && handleEntry()} />
+                </div>
+                <div style={{ marginBottom: 28 }}>
+                  <label style={S.label}>שם משפחה</label>
+                  <input style={S.input} placeholder="הזן שם משפחה" value={lastName}
+                    onChange={e => setLastName(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && handleEntry()} />
+                </div>
+                <button style={S.btn("linear-gradient(135deg,#c026d3,#7c3aed)")} onClick={handleEntry}>
+                  כניסה ←
+                </button>
+                <div style={{ textAlign: "center", marginTop: 16 }}>
+                  <button onClick={() => setView("adminLogin")}
+                    style={{ background: "none", border: "none", color: "#c084fc", cursor: "pointer", fontSize: 13 }}>
+                    כניסת מנהל
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+
+      /* ═══ ADMIN LOGIN ═══ */
+      if (view === "adminLogin") return (
+        <div style={S.root}>
+          <Toast />
+          <div style={S.header("linear-gradient(135deg,#1f2937,#374151)")}>
+            <div style={{ fontSize: 40 }}>🔐</div>
+            <h2 style={{ margin: "6px 0 0", fontWeight: 800 }}>כניסת מנהל</h2>
+          </div>
+          <div style={{ ...S.wrap, maxWidth: 420 }}>
+            <div style={S.card}>
+              <div style={{ padding: "32px 28px" }}>
+                <label style={S.label}>סיסמא</label>
+                <input type="password" style={{ ...S.input, marginBottom: 6, borderColor: adminPassErr ? "#ef4444" : "#e5e7eb" }}
+                  placeholder="הזן סיסמא" value={adminPass}
+                  onChange={e => { setAdminPass(e.target.value); setAdminPassErr(false); }}
+                  onKeyDown={e => e.key === "Enter" && handleAdminLogin()} />
+                {adminPassErr && <p style={{ color: "#ef4444", fontSize: 13, margin: "0 0 12px" }}>סיסמא שגויה</p>}
+                <div style={{ height: adminPassErr ? 0 : 16 }} />
+                <button style={S.btn("linear-gradient(135deg,#1f2937,#374151)")} onClick={handleAdminLogin}>כניסה</button>
+                <div style={{ textAlign: "center", marginTop: 14 }}>
+                  <button onClick={() => setView("entry")} style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 13 }}>← חזרה</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+
+      /* ═══ ROUNDS ═══ */
+      if (view === "round1" || view === "round2") {
+        const round = view === "round1" ? 1 : 2;
+        const roundWs = workshops.filter(w => w.round === round);
+        const currentReg = participant ? getReg(participant.name, round) : null;
+
+        return (
+          <div style={S.root}>
+            <Toast />
+            <div style={S.header()}>
+              <p style={{ margin: "0 0 4px", fontSize: 13, opacity: .8 }}>
+                שלום {participant && participant.name} · שלב {round} מתוך 2
+              </p>
+              <h2 style={{ margin: "0 0 14px", fontSize: 22, fontWeight: 800 }}>
+                בחרו סדנא — סבב {round === 1 ? "א׳" : "ב׳"}
+              </h2>
+              <div style={{ background: "rgba(255,255,255,.25)", borderRadius: 6, height: 7, maxWidth: 260, margin: "0 auto" }}>
+                <div style={{ background: "#fff", height: 7, borderRadius: 6, width: round === 1 ? "50%" : "100%", transition: "width .4s" }} />
+              </div>
+            </div>
+
+            <div style={S.wrap}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(270px,1fr))", gap: 14 }}>
+                {roundWs.map(ws => {
+                  const count = getCount(ws.id);
+                  const isFull = count >= ws.capacity;
+                  const spots = ws.capacity - count;
+                  const selected = currentReg && currentReg.workshopId === ws.id;
+                  const color = getColor(ws.name);
+
+                  return (
+                    <div key={ws.id} className={"ws-card" + (isFull ? " ws-full" : "")}
+                      onClick={() => !isFull && !saving && handleSelect(ws.id)}
+                      style={{
+                        background: "#fff", borderRadius: 16,
+                        border: selected ? ("2.5px solid " + color) : isFull ? "2px solid #fecaca" : "2px solid #f0e8ff",
+                        cursor: isFull ? "not-allowed" : "pointer", overflow: "hidden",
+                        boxShadow: selected ? ("0 4px 18px " + color + "30") : "0 2px 12px rgba(0,0,0,.06)",
+                        position: "relative",
+                      }}>
+                      <div style={{ background: selected ? color : isFull ? "#fca5a5" : color + "22", height: 6 }} />
+                      {ws.isLong && (
+                        <span style={{ position: "absolute", top: 14, left: 12, ...S.pill("#f59e0b22","#b45309"), fontSize: 11 }}>
+                          ⏱ סבב ארוך
+                        </span>
+                      )}
+                      <div style={{ padding: "16px 16px 18px" }}>
+                        <div style={{ ...S.pill(color + "18", color), fontSize: 11, marginBottom: 8, display: "inline-block" }}>{ws.name}</div>
+                        <h3 style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 700, color: "#1f2937" }}>{ws.facilitator}</h3>
+                        {ws.description && <p style={{ margin: "0 0 8px", color: "#9ca3af", fontSize: 12 }}>{ws.description}</p>}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14 }}>
+                          <div style={{
+                            padding: "8px 18px", borderRadius: 10,
+                            background: isFull ? "#ef4444" : selected ? color : color + "18",
+                            color: isFull || selected ? "#fff" : color,
+                            fontWeight: 700, fontSize: 13,
+                          }}>{isFull ? "🔴 מלאה" : selected ? "✓ נבחרה" : "בחר"}</div>
+                          <span style={{
+                            fontSize: 12, fontWeight: 600,
+                            color: isFull ? "#ef4444" : spots <= 2 ? "#f59e0b" : "#10b981",
+                          }}>{isFull ? "אין מקום" : (spots + " מקומות")}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ textAlign: "center", marginTop: 24 }}>
+                <button onClick={() => setView(round === 1 ? "entry" : "round1")}
+                  style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 13 }}>← חזרה</button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      /* ═══ SUMMARY ═══ */
+      if (view === "summary" && participant) {
+        const reg1 = getReg(participant.name, 1);
+        const reg2 = getReg(participant.name, 2);
+        const ws1 = reg1 ? workshops.find(w => w.id === reg1.workshopId) : null;
+        const ws2 = reg2 ? workshops.find(w => w.id === reg2.workshopId) : null;
+        const isLong = ws1 && ws1.isLong;
+
+        const RoundCard = ({ label, ws, round, accent }) => ws ? (
+          <div style={{ marginBottom: 14, borderRadius: 14, overflow: "hidden", border: ("2px solid " + accent + "30"), boxShadow: ("0 4px 16px " + accent + "12") }}>
+            <div style={{ background: "linear-gradient(135deg, " + accent + "18, " + accent + "08)", padding: "10px 16px 8px" }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: accent }}>{label}</span>
+            </div>
+            <div style={{ background: "#fff", padding: "14px 16px" }}>
+              <div style={{ ...S.pill(getColor(ws.name) + "18", getColor(ws.name)), fontSize: 11, display: "inline-block", marginBottom: 8 }}>{ws.name}</div>
+              <h3 style={{ margin: "0 0 4px", fontSize: 17, fontWeight: 800, color: "#1f2937" }}>{ws.facilitator}</h3>
+              <p style={{ margin: 0, color: "#6b7280", fontSize: 13 }}>📍 {ws.location}</p>
+            </div>
+          </div>
+        ) : (
+          <div onClick={() => setView("round" + round)} style={{
+            marginBottom: 14, borderRadius: 14, border: "2.5px dashed #e5e7eb",
+            padding: "20px 16px", textAlign: "center", cursor: "pointer", background: "#fafafa"
+          }}>
+            <p style={{ margin: 0, color: "#9ca3af", fontSize: 14 }}>טרם נרשמת לסבב {round === 1 ? "א׳" : "ב׳"} — לחץ להרשמה</p>
+          </div>
+        );
+
+        return (
+          <div style={S.root}>
+            <Toast />
+            <div style={S.header()}>
+              <div style={{ fontSize: 46, marginBottom: 4 }}>✅</div>
+              <h2 style={{ margin: 0, fontSize: 22, fontWeight: 900 }}>ההרשמה שלך</h2>
+              <p style={{ margin: "6px 0 0", opacity: .85, fontSize: 14 }}>{participant.name}</p>
+            </div>
+            <div style={S.wrap}>
+              <RoundCard label={isLong ? "סבב א׳ + ב׳ (סדנא ארוכה)" : "סבב א׳"} ws={ws1} round={1} accent="#7c3aed" />
+              {!isLong && <RoundCard label="סבב ב׳" ws={ws2} round={2} accent="#c026d3" />}
+              <button onClick={() => setView("round1")}
+                style={{ ...S.btn("#fff", "#374151"), border: "2px solid #e5e7eb", marginTop: 8 }}>
+                שינוי בחירה
+              </button>
+              <div style={{ textAlign: "center", marginTop: 14 }}>
+                <button onClick={() => { setParticipant(null); setFirstName(""); setLastName(""); setView("entry"); }}
+                  style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 13 }}>יציאה</button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      /* ═══ ADMIN ═══ */
+      if (view === "admin") {
+        const uniquePart = [...new Set(registrations.map(r => r.participantName))].length;
+
+        return (
+          <div style={S.root}>
+            <Toast />
+            <div style={S.header("linear-gradient(135deg,#1e1b4b,#312e81)")}>
+              <h2 style={{ margin: 0, fontSize: 22, fontWeight: 900 }}>🛠 פאנל מנהל</h2>
+              <p style={{ margin: "6px 0 0", opacity: .7, fontSize: 13 }}>
+                {registrations.length} הרשמות · {uniquePart} משתתפים · {workshops.length} סדנאות
+              </p>
+            </div>
+
+            <div style={{ ...S.wrap, maxWidth: 860 }}>
+              <div style={{ display: "flex", gap: 10, marginBottom: 22 }}>
+                {[["report","📊 דוח הרשמות"],["manage","⚙️ ניהול סדנאות"]].map(([t,l]) => (
+                  <button key={t} onClick={() => setAdminTab(t)} style={{
+                    flex: 1, padding: "13px", borderRadius: 12, border: "none", cursor: "pointer",
+                    fontWeight: 700, fontSize: 14,
+                    background: adminTab === t ? "linear-gradient(135deg,#1e1b4b,#312e81)" : "#fff",
+                    color: adminTab === t ? "#fff" : "#374151",
+                    boxShadow: "0 2px 10px rgba(0,0,0,.07)",
+                  }}>{l}</button>
+                ))}
+              </div>
+
+              {adminTab === "report" && (
+                <div>
+                  <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+                    <button onClick={exportCSV} style={{ ...S.btn("#10b981"), flex: "0 0 auto", width: "auto", padding: "11px 22px" }}>⬇ ייצוא CSV</button>
+                    <button onClick={resetAll} style={{ ...S.btn("#ef4444"), flex: "0 0 auto", width: "auto", padding: "11px 22px" }}>🗑 מחיקת הרשמות</button>
+                  </div>
+
+                  {[1, 2].map(round => (
+                    <div key={round} style={{ marginBottom: 28 }}>
+                      <h3 style={{ margin: "0 0 12px", color: "#1e1b4b", fontSize: 17, fontWeight: 800 }}>סבב {round === 1 ? "א׳" : "ב׳"}</h3>
+                      {workshops.filter(w => w.round === round).map(ws => {
+                        const wRegs = registrations.filter(r => r.workshopId === ws.id);
+                        const pct = Math.round((wRegs.length / ws.capacity) * 100);
+                        const isExp = expanded === ws.id;
+                        const color = getColor(ws.name);
+                        return (
+                          <div key={ws.id} style={{ marginBottom: 10, borderRadius: 14, border: "2px solid #f0e8ff", overflow: "hidden", background: "#fff" }}>
+                            <div onClick={() => setExpanded(isExp ? null : ws.id)}
+                              style={{ padding: "14px 16px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <div>
+                                <span style={{ fontWeight: 700, fontSize: 15, color: "#1f2937" }}>{ws.name}</span>
+                                <span style={{ color: "#9ca3af", fontSize: 13, marginRight: 8 }}>{ws.facilitator}</span>
+                              </div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                <span style={S.pill(pct >= 100 ? "#fee2e2" : pct >= 70 ? "#fef3c7" : "#d1fae5", pct >= 100 ? "#dc2626" : pct >= 70 ? "#92400e" : "#065f46")}>
+                                  {wRegs.length}/{ws.capacity}
+                                </span>
+                                <span style={{ color: "#c084fc" }}>{isExp ? "▲" : "▼"}</span>
+                              </div>
+                            </div>
+                            <div style={{ background: "#f3f4f6", height: 4 }}>
+                              <div style={{ background: color, height: 4, width: Math.min(pct,100) + "%" }} />
+                            </div>
+                            {isExp && (
+                              <div style={{ padding: "12px 16px", borderTop: "1px solid #f3f4f6" }}>
+                                {!wRegs.length
+                                  ? <p style={{ margin: 0, color: "#9ca3af", fontSize: 14 }}>אין משתתפים רשומים</p>
+                                  : <ol style={{ margin: 0, paddingRight: 20 }}>
+                                      {wRegs.map((r,i) => (
+                                        <li key={i} style={{ padding: "3px 0", color: "#374151", fontSize: 14 }}>{r.participantName}</li>
+                                      ))}
+                                    </ol>
+                                }
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {adminTab === "manage" && (
+                <div>
+                  {workshops.map(ws => {
+                    const isEdit = editing && editing.id === ws.id;
+                    const color = getColor(ws.name);
+                    return (
+                      <div key={ws.id} style={{ marginBottom: 12, borderRadius: 14, border: "2px solid #f0e8ff", background: "#fff", overflow: "hidden" }}>
+                        <div style={{ background: color + "10", height: 4 }} />
+                        <div style={{ padding: "14px 16px" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                            <div>
+                              <div style={{ display: "flex", gap: 8, marginBottom: 4, alignItems: "center", flexWrap: "wrap" }}>
+                                <span style={S.pill(color + "18", color)}>{ws.name}</span>
+                                <span style={{ ...S.pill("#f0e8ff","#7c3aed"), fontSize: 11 }}>סבב {ws.round === 1 ? "א׳" : "ב׳"}{ws.isLong ? " ⏱" : ""}</span>
+                              </div>
+                              <h4 style={{ margin: "0 0 2px", fontWeight: 700, color: "#1f2937" }}>{ws.facilitator}</h4>
+                              {!isEdit && (
+                                <p style={{ margin: 0, color: "#6b7280", fontSize: 13 }}>
+                                  📍 {ws.location} · 👥 מכסה {ws.capacity} · ✅ {getCount(ws.id)} רשומים
+                                </p>
+                              )}
+                            </div>
+                            <button onClick={() => isEdit ? setEditing(null) : setEditing({ ...ws })}
+                              style={{ padding: "8px 16px", borderRadius: 10, border: "2px solid #e5e7eb", background: isEdit ? "#f3f4f6" : "#fff", cursor: "pointer", fontWeight: 600, fontSize: 13, flexShrink: 0 }}>
+                              {isEdit ? "ביטול" : "עריכה"}
+                            </button>
+                          </div>
+
+                          {isEdit && (
+                            <div style={{ marginTop: 16, paddingTop: 14, borderTop: "2px solid #f3f4f6" }}>
+                              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+                                <div>
+                                  <label style={S.label}>מכסה</label>
+                                  <input type="number" value={editing.capacity}
+                                    onChange={e => setEditing({ ...editing, capacity: parseInt(e.target.value)||0 })}
+                                    style={{ ...S.input, padding: "10px 14px", fontSize: 14 }} />
+                                </div>
+                                <div>
+                                  <label style={S.label}>מיקום / חדר</label>
+                                  <input value={editing.location}
+                                    onChange={e => setEditing({ ...editing, location: e.target.value })}
+                                    style={{ ...S.input, padding: "10px 14px", fontSize: 14 }} placeholder="חדר / מיקום" />
+                                </div>
+                              </div>
+                              <div style={{ marginBottom: 14 }}>
+                                <label style={S.label}>תיאור (אופציונלי)</label>
+                                <textarea value={editing.description}
+                                  onChange={e => setEditing({ ...editing, description: e.target.value })}
+                                  style={{ ...S.input, minHeight: 60, resize: "vertical", padding: "10px 14px", fontSize: 14 }}
+                                  placeholder="תיאור קצר של הסדנא…" />
+                              </div>
+                              <button onClick={() => saveWorkshop(editing)}
+                                style={{ ...S.btn("linear-gradient(135deg," + color + "," + color + "bb)"), width: "auto", padding: "11px 28px" }}>
+                                שמור שינויים
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div style={{ textAlign: "center", marginTop: 28 }}>
+                <button onClick={() => { setView("entry"); setAdminPass(""); }}
+                  style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 13 }}>← יציאה מפאנל המנהל</button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return null;
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>
