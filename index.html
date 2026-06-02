@@ -118,6 +118,7 @@
       const [expanded, setExpanded] = useState(null);
       const [toast, setToast] = useState(null);
       const [saving, setSaving] = useState(false);
+      const [pendingId, setPendingId] = useState(null);
 
       /* Wait for Firebase */
       useEffect(() => {
@@ -198,6 +199,8 @@
       };
 
       const handleSelect = async (wid) => {
+        if (saving) return; // ignore rapid double-clicks
+        setPendingId(wid);   // immediate UI feedback before the transaction starts
         setSaving(true);
         try {
           const { db, doc, runTransaction } = window.FB;
@@ -287,6 +290,7 @@
           }
         }
         setSaving(false);
+        setPendingId(null);
       };
 
       const handleAdminLogin = () => {
@@ -477,8 +481,10 @@
                   const count = getCount(ws.id);
                   const isFull = count >= ws.capacity;
                   const spots = ws.capacity - count;
-                  const selected = currentReg && currentReg.workshopId === ws.id;
+                  const isPending = pendingId === ws.id;
+                  const selected = isPending || (currentReg && currentReg.workshopId === ws.id);
                   const color = getColor(ws.name);
+                  const otherPending = pendingId && !isPending;
 
                   return (
                     <div key={ws.id} className={"ws-card" + (isFull ? " ws-full" : "")}
@@ -486,9 +492,11 @@
                       style={{
                         background: "#fff", borderRadius: 16,
                         border: selected ? ("2.5px solid " + color) : isFull ? "2px solid #fecaca" : "2px solid #eaeafe",
-                        cursor: isFull ? "not-allowed" : "pointer", overflow: "hidden",
+                        cursor: isFull ? "not-allowed" : saving ? "wait" : "pointer", overflow: "hidden",
                         boxShadow: selected ? ("0 4px 18px " + color + "30") : "0 2px 12px rgba(0,0,0,.06)",
                         position: "relative",
+                        opacity: otherPending ? 0.5 : 1,
+                        transition: "opacity .15s, border-color .15s, box-shadow .15s",
                       }}>
                       <div style={{ background: selected ? color : isFull ? "#fca5a5" : color + "22", height: 6 }} />
                       {ws.isLong && (
@@ -506,7 +514,7 @@
                             background: isFull ? "#ef4444" : selected ? color : color + "18",
                             color: isFull || selected ? "#fff" : color,
                             fontWeight: 700, fontSize: 13,
-                          }}>{isFull ? "🔴 מלאה" : selected ? "✓ נבחרה" : "בחר"}</div>
+                          }}>{isFull ? "🔴 מלאה" : isPending ? "מעבד…" : selected ? "✓ נבחרה" : "בחר"}</div>
                           <span style={{
                             fontSize: 12, fontWeight: 600,
                             color: isFull ? "#ef4444" : spots <= 2 ? "#f59e0b" : "#10b981",
